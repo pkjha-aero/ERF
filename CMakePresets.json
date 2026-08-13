@@ -1,0 +1,173 @@
+{
+  "version": 3,
+  "vendor": {
+    "erf-model/ERF": {
+      "description": "ERF CMake Presets for common configurations"
+    }
+  },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default (Serial Debug)",
+      "description": "Minimal configuration for debugging: serial, debug mode, no GPU",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-default",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ERF_ENABLE_TESTS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release (Serial)",
+      "description": "Serial release build with optimizations",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "parallel",
+      "displayName": "Parallel (MPI + OpenMP)",
+      "description": "Multi-process and multi-threaded build: MPI + OpenMP, release mode",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-parallel",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ERF_ENABLE_MPI": "ON",
+        "ERF_ENABLE_OPENMP": "ON",
+        "ERF_ENABLE_TESTS": "ON"
+      }
+    },
+    {
+      "name": "gpu-cuda",
+      "displayName": "GPU (CUDA)",
+      "description": "NVIDIA GPU support with CUDA, MPI, optimized for performance",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-gpu-cuda",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ERF_ENABLE_CUDA": "ON",
+        "ERF_ENABLE_MPI": "ON",
+        "ERF_ENABLE_OPENMP": "ON"
+      }
+    },
+    {
+      "name": "gpu-hip",
+      "displayName": "GPU (HIP/ROCm)",
+      "description": "AMD GPU support with HIP, MPI, optimized for performance",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-gpu-hip",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ERF_ENABLE_HIP": "ON",
+        "ERF_ENABLE_MPI": "ON",
+        "ERF_ENABLE_OPENMP": "ON"
+      }
+    },
+    {
+      "name": "minimal",
+      "displayName": "Minimal (No Dependencies)",
+      "description": "Stripped-down build for testing core functionality",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-minimal",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "ERF_ENABLE_TESTS": "OFF",
+        "ERF_ENABLE_NETCDF": "OFF",
+        "ERF_ENABLE_HDF5": "OFF",
+        "ERF_ENABLE_PARTICLES": "OFF",
+        "ERF_ENABLE_DOCUMENTATION": "OFF"
+      }
+    },
+    {
+      "name": "ci-gcc",
+      "displayName": "CI (GCC)",
+      "description": "Continuous integration preset for GCC compiler with full features",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-ci-gcc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ERF_ENABLE_MPI": "ON",
+        "ERF_ENABLE_OPENMP": "ON",
+        "ERF_ENABLE_TESTS": "ON",
+        "CODECOVERAGE": "ON"
+      }
+    },
+    {
+      "name": "ci-clang",
+      "displayName": "CI (Clang)",
+      "description": "Continuous integration preset for Clang compiler",
+      "hidden": false,
+      "binaryDir": "${sourceDir}/build-ci-clang",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "ERF_ENABLE_MPI": "ON",
+        "ERF_ENABLE_OPENMP": "ON",
+        "ERF_ENABLE_TESTS": "ON"
+      },
+      "environment": {
+        "CC": "clang",
+        "CXX": "clang++"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "description": "Build with default configuration",
+      "jobs": 0
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "description": "Build with release configuration",
+      "jobs": 0
+    },
+    {
+      "name": "parallel",
+      "configurePreset": "parallel",
+      "description": "Build with parallel configuration",
+      "jobs": 0
+    },
+    {
+      "name": "gpu-cuda",
+      "configurePreset": "gpu-cuda",
+      "description": "Build with CUDA GPU support",
+      "jobs": 0
+    },
+    {
+      "name": "gpu-hip",
+      "configurePreset": "gpu-hip",
+      "description": "Build with HIP GPU support",
+      "jobs": 0
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "description": "Run tests with default configuration",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "parallel",
+      "configurePreset": "parallel",
+      "description": "Run tests with parallel configuration",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

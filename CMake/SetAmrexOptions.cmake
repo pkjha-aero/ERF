@@ -56,10 +56,26 @@ if(ERF_ENABLE_CUDA)
   set(AMReX_GPU_BACKEND CUDA CACHE STRING "AMReX GPU type" FORCE)
   set(AMReX_CUDA_WARN_CAPTURE_THIS OFF)
   set(AMReX_CUDA_ERROR_CAPTURE_THIS ON)
+
+  # Configure CUDA architectures from ERF option
+  if(NOT ERF_CUDA_ARCH STREQUAL "auto")
+    if(ERF_CUDA_ARCH STREQUAL "native")
+      # Let CMake auto-detect native architecture
+      set(CMAKE_CUDA_ARCHITECTURES native)
+    else()
+      # User-specified architecture list
+      set(CMAKE_CUDA_ARCHITECTURES ${ERF_CUDA_ARCH})
+    endif()
+    message(STATUS "ERF_CUDA_ARCH set to: ${ERF_CUDA_ARCH}")
+  else()
+    message(STATUS "ERF_CUDA_ARCH=auto, using AMReX defaults")
+  endif()
 endif()
 
 if(ERF_ENABLE_HIP)
   set(AMReX_GPU_BACKEND HIP CACHE STRING "AMReX GPU type" FORCE)
+  set(AMReX_AMD_ARCH ${ERF_HIP_ARCH} CACHE STRING "AMD GPU architecture" FORCE)
+  message(STATUS "HIP architecture: ${ERF_HIP_ARCH}")
 endif()
 
 if(ERF_ENABLE_SYCL)

@@ -19,6 +19,29 @@ message(STATUS "Configuring ERF")
 message(VERBOSE "Source directory: ${PROJECT_SOURCE_DIR}")
 message(VERBOSE "Build directory: ${PROJECT_BINARY_DIR}")
 
+############################ CCACHE #######################################
+# Optional: Use ccache or sccache for faster incremental builds
+find_program(CCACHE_PROGRAM ccache)
+find_program(SCCACHE_PROGRAM sccache)
+
+if(SCCACHE_PROGRAM)
+  message(STATUS "Found sccache: ${SCCACHE_PROGRAM}")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}")
+  set(CMAKE_C_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}")
+  if(CMAKE_Fortran_COMPILER)
+    set(CMAKE_Fortran_COMPILER_LAUNCHER "${SCCACHE_PROGRAM}")
+  endif()
+elseif(CCACHE_PROGRAM)
+  message(STATUS "Found ccache: ${CCACHE_PROGRAM}")
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  if(CMAKE_Fortran_COMPILER)
+    set(CMAKE_Fortran_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  endif()
+else()
+  message(VERBOSE "ccache/sccache not found - incremental builds may be slower")
+endif()
+
 function(print_target_properties target_name)
   if(NOT TARGET ${target_name})
     message(STATUS "=== Target ${target_name} does not exist ===")
@@ -119,7 +142,7 @@ message(VERBOSE "Configuring build options")
 #General options for all executables in the project
 set(ERF_DIM "3" CACHE STRING "Number of physical dimensions")
 option(ERF_ENABLE_DOCUMENTATION "Build documentation" OFF)
-option(ERF_ENABLE_ALL_WARNINGS "Enable all compiler warnings" OFF)
+option(ERF_ENABLE_ALL_WARNINGS "Enable all compiler warnings" ON)
 option(ERF_ENABLE_TESTS "Enable regression and unit tests" OFF)
 option(ERF_ENABLE_REGRESSION_TESTS_ONLY "Enable only regression tests" OFF)
 set(_erf_enable_unit_tests_default OFF)
@@ -146,7 +169,10 @@ endif()
 option(ERF_ENABLE_EAMXX_SHOC "Build EAMxx SHOC parameterization" OFF)
 option(ERF_ENABLE_SHOC "Deprecated alias for ERF_ENABLE_EAMXX_SHOC" OFF)
 if(ERF_ENABLE_SHOC AND NOT ERF_ENABLE_EAMXX_SHOC)
-  message(WARNING "ERF_ENABLE_SHOC is deprecated; use ERF_ENABLE_EAMXX_SHOC=ON")
+  message(DEPRECATION
+    "ERF_ENABLE_SHOC is DEPRECATED and will be REMOVED in ERF v1.0.0 (Q4 2024)\n"
+    "Please use ERF_ENABLE_EAMXX_SHOC=ON instead\n"
+    "Migration: Replace '-DERF_ENABLE_SHOC=ON' with '-DERF_ENABLE_EAMXX_SHOC=ON'")
   set(ERF_ENABLE_EAMXX_SHOC ON CACHE BOOL "Build EAMxx SHOC parameterization" FORCE)
 endif()
 
@@ -157,6 +183,12 @@ option(ERF_ENABLE_CUDA "Enable CUDA" OFF)
 option(ERF_ENABLE_HIP  "Enable HIP" OFF)
 option(ERF_ENABLE_SYCL "Enable SYCL" OFF)
 option(ERF_ENABLE_NVHPC "Enable NVHPC" OFF)
+
+#GPU architecture configuration
+set(ERF_CUDA_ARCH "auto" CACHE STRING
+    "CUDA architectures: 'auto' (use AMReX defaults), 'native', or space-separated list (e.g., '80 90')")
+set(ERF_HIP_ARCH "gfx90a" CACHE STRING
+    "HIP/ROCM GPU architecture: 'gfx90a' (MI250X), 'gfx908' (MI100), or other supported arch")
 
 #Options for NOAH-MP
 option(ERF_ENABLE_NOAHMP "Enable Noah-MP" OFF)
@@ -195,14 +227,18 @@ if(CODECOVERAGE)
   message(VERBOSE "Enabling code coverage profiling")
   # Only supports GNU
   if(NOT CMAKE_CXX_COMPILER_ID MATCHES GNU)
-    message(WARNING "CODECOVERAGE is only support with GNU Compilers. The current C++ compiler is ${CMAKE_CXX_COMPILER_ID}")
+    message(WARNING "CODECOVERAGE is only supported with GNU Compilers. The current C++ compiler is ${CMAKE_CXX_COMPILER_ID}")
   endif()
   if(NOT CMAKE_C_COMPILER_ID MATCHES GNU)
-    message(WARNING "CODECOVERAGE is only support with GNU Compilers. The current C compiler is ${CMAKE_C_COMPILER_ID}")
+    message(WARNING "CODECOVERAGE is only supported with GNU Compilers. The current C compiler is ${CMAKE_C_COMPILER_ID}")
   endif()
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --coverage")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --coverage")
+  # Use modern target-independent global options instead of CMAKE_*_FLAGS
+  add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX>:--coverage>
+    $<$<COMPILE_LANGUAGE:C>:--coverage>
+  )
+  add_link_options(--coverage)
 endif()
 
 ########################### AMReX #####################################
@@ -283,7 +319,8 @@ else()
       separate_arguments(AMREX_COMPONENTS)
       message(VERBOSE "Required AMReX components: ${AMREX_COMPONENTS}")
 
-      find_package(AMReX CONFIG QUIET COMPONENTS ${AMREX_COMPONENTS})
+      # Require minimum AMReX version for feature support and bug fixes
+      find_package(AMReX 23.10 CONFIG QUIET COMPONENTS ${AMREX_COMPONENTS})
 
       if(NOT AMReX_FOUND)
         message(STATUS "")
@@ -405,26 +442,6 @@ if(ERF_ENABLE_HIP AND ERF_ENABLE_EKAT)
   # Print kokkoscore after clearing
   print_target_properties(kokkoscore)
 endif()
-# Strip GPU flags from Kokkos (AMReX provides them)
-#if(ERF_ENABLE_HIP AND ERF_ENABLE_EKAT)
-#  # Strip from ALL Kokkos targets
-#  foreach(kokkos_target IN ITEMS kokkoscore kokkoscontainers kokkosalgorithms Kokkos::kokkos)
-#    if(TARGET ${kokkos_target})
-#      get_target_property(kokkos_link_opts ${kokkos_target} INTERFACE_LINK_OPTIONS)
-#      if(kokkos_link_opts AND NOT kokkos_link_opts STREQUAL "kokkos_link_opts-NOTFOUND")
-#        # Filter out GPU-related generator expressions
-#        list(FILTER kokkos_link_opts EXCLUDE REGEX ".*--hip-link.*")
-#        list(FILTER kokkos_link_opts EXCLUDE REGEX ".*--offload-arch=.*")
-#        list(FILTER kokkos_link_opts EXCLUDE REGEX ".*-fgpu-rdc.*")
-#        set_target_properties(${kokkos_target} PROPERTIES INTERFACE_LINK_OPTIONS "${kokkos_link_opts}")
-#        message(STATUS "Stripped GPU flags from ${kokkos_target}")
-#      endif()
-#    endif()
-#  endforeach()
-
-#  # Print kokkoscore after stripping
-#  print_target_properties(kokkoscore)
-#endif()
 
 list(POP_BACK CMAKE_MESSAGE_CONTEXT)
 endif()
@@ -435,97 +452,20 @@ if(ERF_ENABLE_MPI)
   list(APPEND CMAKE_MESSAGE_CONTEXT "MPI")
   message(STATUS "Configuring MPI")
 
-  # Check if we're on Cray with bare MPI wrappers (which will hang)
-  set(SKIP_MPI_DETECTION FALSE)
+  # Load MPI configuration helper
+  include(${PROJECT_SOURCE_DIR}/CMake/FindMPIHelper.cmake)
 
-  if(DEFINED ENV{CRAYPE_VERSION} OR DEFINED ENV{CRAY_MPICH_DIR})
-    # On Cray system - check if using problematic bare MPI wrappers
-    if(CMAKE_CXX_COMPILER MATCHES "mpicxx" OR
-       CMAKE_C_COMPILER MATCHES "mpicc" OR
-       CMAKE_Fortran_COMPILER MATCHES "mpifort")
-      message(STATUS "Detected bare MPI wrappers on Cray - skipping detection (would hang)")
-      set(SKIP_MPI_DETECTION TRUE)
-    endif()
+  # Determine MPI components based on enabled features
+  set(_mpi_components C CXX)
+  if(ERF_ENABLE_MORR_FORT OR ERF_ENABLE_WSM6_FORT OR ERF_ENABLE_NOAHMP)
+    list(APPEND _mpi_components Fortran)
   endif()
 
-  if(SKIP_MPI_DETECTION)
-    # Workaround: Manual MPI setup (avoids hang)
-    message(VERBOSE "Manually configuring MPI (bypassing find_package)")
+  # Configure MPI with automatic Cray workaround
+  erf_configure_mpi(COMPONENTS ${_mpi_components})
 
-    # Get Cray MPICH version for informational purposes
-    set(MPICH_VERSION "UNKNOWN")
-    if(DEFINED ENV{CRAY_MPICH_VERSION})
-      set(MPICH_VERSION "$ENV{CRAY_MPICH_VERSION}")
-    elseif(DEFINED ENV{CRAY_MPICH_VER})
-      set(MPICH_VERSION "$ENV{CRAY_MPICH_VER}")
-    endif()
-
-    # Cray MPICH 8.x supports MPI 3.1 standard
-    set(MPI_VERSION "3.1")
-
-    # Create MPI targets
-    if(NOT TARGET MPI::MPI_CXX)
-      add_library(MPI::MPI_CXX INTERFACE IMPORTED)
-      message(DEBUG "Created MPI::MPI_CXX target")
-    endif()
-
-    if(NOT TARGET MPI::MPI_C)
-      add_library(MPI::MPI_C INTERFACE IMPORTED)
-      message(DEBUG "Created MPI::MPI_C target")
-    endif()
-
-    if(NOT TARGET MPI::MPI_Fortran)
-      add_library(MPI::MPI_Fortran INTERFACE IMPORTED)
-      message(DEBUG "Created MPI::MPI_Fortran target")
-    endif()
-
-    # Set MPI variables
-    set(MPI_FOUND TRUE)
-    set(MPI_CXX_FOUND TRUE)
-    set(MPI_C_FOUND TRUE)
-    set(MPI_Fortran_FOUND TRUE)
-    set(MPI_C_VERSION "${MPI_VERSION}")
-    set(MPI_CXX_VERSION "${MPI_VERSION}")
-    set(MPI_Fortran_VERSION "${MPI_VERSION}")
-
-    message(STATUS "Cray MPICH: ${MPICH_VERSION}")
-    message(STATUS "MPI standard: ${MPI_VERSION}")
-    message(VERBOSE "Created MPI::MPI_CXX and MPI::MPI_C targets")
-  else()
-    # Normal path: Use find_package with QUIET
-    message(VERBOSE "Using find_package(MPI) for detection")
-    set(_mpi_comps C CXX)
-    if(ERF_ENABLE_MORR_FORT OR ERF_ENABLE_WSM6_FORT OR ERF_ENABLE_NOAHMP)
-      list(APPEND _mpi_comps Fortran)
-    endif()
-    message(DEBUG "MPI components: ${_mpi_comps}")
-
-    find_package(MPI QUIET COMPONENTS ${_mpi_comps})
-
-    if(NOT MPI_FOUND)
-      message(STATUS "")
-      message(STATUS "====================================================================")
-      message(STATUS "MPI Detection Failed")
-      message(STATUS "====================================================================")
-      message(STATUS "")
-      message(STATUS "To resolve, load modules from your machine profile:")
-      message(STATUS "")
-      erf_suggest_machine_profile()
-      message(STATUS "")
-      message(STATUS "  Or on non-Cray systems, install MPI:")
-      message(STATUS "    OpenMPI, MPICH, Intel MPI, etc.")
-      message(STATUS "")
-      message(STATUS "  Then configure with:")
-      message(STATUS "    cmake -DMPI_C_COMPILER=mpicc -DMPI_CXX_COMPILER=mpicxx ..")
-      message(STATUS "")
-      message(STATUS "====================================================================")
-      message(STATUS "")
-      message(FATAL_ERROR "MPI required but not found")
-    endif()
-
-    message(STATUS "Found MPI")
-    message(VERBOSE "  MPI_C_VERSION: ${MPI_C_VERSION}")
-    message(VERBOSE "  MPI_CXX_VERSION: ${MPI_CXX_VERSION}")
+  if(NOT MPI_FOUND)
+    message(FATAL_ERROR "MPI required but not found. Check CMake output above for details.")
   endif()
 
   message(STATUS "MPI configuration complete")
@@ -544,7 +484,8 @@ if(ERF_ENABLE_NETCDF OR ERF_ENABLE_TOOLS)
   message(DEBUG "ERF_ENABLE_TOOLS: ${ERF_ENABLE_TOOLS}")
 
   set(CMAKE_PREFIX_PATH ${NETCDF_DIR} ${CMAKE_PREFIX_PATH})
-  find_package (NetCDF REQUIRED)
+  # Require minimum NetCDF version for API stability
+  find_package(NetCDF 4.6.1 REQUIRED)
   if(NETCDF_FOUND)
      message(STATUS "Found NetCDF: ${NETCDF_DIR}")
      message(VERBOSE "NetCDF includes: ${NETCDF_INCLUDES}")
@@ -707,44 +648,66 @@ target_link_libraries(erf_api PUBLIC erf_srclib)
 add_library(${PROJECT_NAME}::erf_api ALIAS erf_srclib)
 
 # Collect all headers and make them installable with the target
-file(GLOB_RECURSE ERF_INCLUDES "${PROJECT_SOURCE_DIR}/Source/*.H")
-
-set_target_properties(
-  erf_srclib PROPERTIES PUBLIC_HEADER "${ERF_INCLUDES}")
+############################ INSTALL #####################################
 
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-  # Install ERF
+  message(STATUS "Configuring install targets")
+
+  # Collect all headers
+  file(GLOB_RECURSE ERF_INCLUDES "${PROJECT_SOURCE_DIR}/Source/*.H")
+  set_target_properties(erf_srclib PROPERTIES PUBLIC_HEADER "${ERF_INCLUDES}")
+
+  # Install executables and libraries
   install(
     TARGETS erf_api erf_srclib
     EXPORT ${PROJECT_NAME}Targets
     RUNTIME       DESTINATION bin
-    ARCHIVE       DESTINATION lib
-    LIBRARY       DESTINATION lib
-    INCLUDES      DESTINATION include
-    PUBLIC_HEADER DESTINATION include
-    )
+    ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/erf
+  )
 
-  # Install all headers in include directories
-  #install(
-  #  DIRECTORY ${ERF_INCLUDE_DIRECTORIES}
-  #  DESTINATION include
-  #  FILES_MATCHING PATTERN "*.H")
+  # Install source headers maintaining directory structure
+  install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/Source/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/erf
+    FILES_MATCHING PATTERN "*.H"
+    PATTERN "Make.package" EXCLUDE
+  )
 
-  # Make ERF discoverable using `find_package`
+  # Install CMake configuration files for find_package() support
   install(
     EXPORT ${PROJECT_NAME}Targets
+    FILE ${PROJECT_NAME}Targets.cmake
     NAMESPACE ${PROJECT_NAME}::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    )
+  )
+
   configure_package_config_file(
-    CMake/${PROJECT_NAME}Config.cmake.in
+    ${PROJECT_SOURCE_DIR}/CMake/${PROJECT_NAME}Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    )
-  install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  )
+
+  install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    )
+  )
+
+  # Install version file for find_package() version checking
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+  )
+
+  install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+  )
+
+  message(STATUS "Install targets configured for: ${CMAKE_INSTALL_PREFIX}")
 endif()
 
 message(VERBOSE "Install prefix: ${CMAKE_INSTALL_PREFIX}")

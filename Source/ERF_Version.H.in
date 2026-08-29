@@ -31,6 +31,12 @@ inline constexpr const char* git_sha = "@ERF_GIT_SHA@";
 //! build time.
 inline constexpr bool git_dirty = @ERF_GIT_DIRTY@;
 
+//! Current git branch name at build time (e.g., "development", "main"), or "unknown".
+inline constexpr const char* git_branch = "@ERF_GIT_BRANCH@";
+
+//! Parent/upstream branch at build time (e.g., "origin/main"), or "main" if no upstream is configured.
+inline constexpr const char* git_parent = "@ERF_GIT_PARENT@";
+
 //! Build timestamp as ISO-8601 UTC (YYYY-MM-DDThh:mm:ssZ). Honors
 //! SOURCE_DATE_EPOCH so reproducible builds get a stable value.
 inline constexpr const char* build_date = "@ERF_BUILD_DATE@";

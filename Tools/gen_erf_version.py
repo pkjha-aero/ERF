@@ -23,6 +23,8 @@ _PLACEHOLDERS = (
     "ERF_GIT_DESCRIBE",
     "ERF_GIT_SHA",
     "ERF_GIT_DIRTY",
+    "ERF_GIT_BRANCH",
+    "ERF_GIT_PARENT",
     "ERF_BUILD_DATE",
     "ERF_CXX_COMPILER",
     "ERF_AMREX_VERSION",
@@ -57,12 +59,17 @@ def _build_date():
 def _resolve(source_dir):
     inside_tree = _git(source_dir, "rev-parse", "--is-inside-work-tree") == "true"
     if not inside_tree:
-        return "unknown", "unknown", "false"
+        return "unknown", "unknown", "false", "unknown", "unknown"
 
     describe = _git(source_dir, "describe", "--tags", "--always", "--dirty") or "unknown"
     sha = _git(source_dir, "rev-parse", "HEAD") or "unknown"
     dirty = "true" if _git(source_dir, "status", "--porcelain") else "false"
-    return describe, sha, dirty
+    branch = _git(source_dir, "symbolic-ref", "--short", "HEAD") or "unknown"
+    # Parent branch: for a tracking branch, get the upstream; otherwise try 'main'
+    parent = _git(source_dir, "rev-parse", "--abbrev-ref", "@{u}") or "main"
+    if parent.startswith("fatal:"):
+        parent = "main"
+    return describe, sha, dirty, branch, parent
 
 
 def main(argv=None):
@@ -75,7 +82,7 @@ def main(argv=None):
     parser.add_argument("--amrex-version", default="unknown")
     args = parser.parse_args(argv)
 
-    describe, sha, dirty = _resolve(args.source_dir)
+    describe, sha, dirty, branch, parent = _resolve(args.source_dir)
 
     with open(args.template, "r", encoding="utf-8") as handle:
         text = handle.read()
@@ -85,6 +92,8 @@ def main(argv=None):
         "ERF_GIT_DESCRIBE": describe,
         "ERF_GIT_SHA": sha,
         "ERF_GIT_DIRTY": dirty,
+        "ERF_GIT_BRANCH": branch,
+        "ERF_GIT_PARENT": parent,
         "ERF_BUILD_DATE": _build_date(),
         "ERF_CXX_COMPILER": args.cxx_compiler.strip() or "unknown",
         "ERF_AMREX_VERSION": args.amrex_version.strip() or "unknown",

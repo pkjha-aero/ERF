@@ -9,8 +9,10 @@ list(APPEND CMAKE_MESSAGE_CONTEXT "ERF")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 include(CrayCompilerDetection)
 
-# Single source of version truth: the top-level version.txt. The GNU Make build
-# reads the same file (see Exec/Make.ERF). See IMPROVEMENTS_SCOPE.md item 0.1.
+# Single source of version truth: the top-level version.txt contains the planned
+# development version (e.g., 26.08.0), independent of git tags. The GNU Make build
+# reads the same file (see Exec/Make.ERF). Both build systems embed this into binaries
+# and every job_info file. See VERSION_MANAGEMENT.md and IMPROVEMENTS_SCOPE.md item 0.1.
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ERF_VERSION_STRING LIMIT_COUNT 1)
 string(STRIP "${ERF_VERSION_STRING}" ERF_VERSION_STRING)
 if(NOT ERF_VERSION_STRING MATCHES "^[0-9]+(\\.[0-9]+)*$")

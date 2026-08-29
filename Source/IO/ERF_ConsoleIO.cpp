@@ -102,9 +102,10 @@ void ERF::print_banner (MPI_Comm comm, std::ostream& out)
     out << dbl_line
         << "                ERF (https://github.com/erf-model/ERF)"
         << std::endl << std::endl
-        << "  ERF version      :: " << erf_version::version
-        << (erf_version::git_dirty ? " (dirty work tree)" : "") << std::endl
-        << "  ERF Git describe :: " << erf_version::git_describe << std::endl
+        << "  ERF version (dev):: " << erf_version::version
+        << (erf_version::git_dirty ? " (dirty)" : "") << std::endl
+        << "  ERF last release :: " << erf_version::git_describe << std::endl
+        << "  ERF branch       :: " << erf_version::git_branch << std::endl
         << "  ERF Git SHA      :: " << githash1 << std::endl
         << "  AMReX Git SHA    :: " << githash2 << std::endl
         << "  AMReX version    :: " << amrex::Version() << std::endl << std::endl

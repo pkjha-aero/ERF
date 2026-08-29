@@ -4,6 +4,7 @@
 #include <ERF.H>
 #include <ERF_InputsName.H>
 #include <ERF_EpochTime.H>
+#include <ERF_Version.H>
 #include <AMReX_buildInfo.H>
 #include <ERF_Provenance.H>
 
@@ -101,6 +102,10 @@ ERF::writeJobInfo (const std::string& dir,
     jobInfoFile << " Build Information\n";
     jobInfoFile << PrettyLine;
 
+    jobInfoFile << "ERF version:   " << erf_version::version
+                << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
+    jobInfoFile << "ERF describe:  " << erf_version::git_describe << "\n";
+    jobInfoFile << "ERF git SHA:   " << erf_version::git_sha << "\n";
     jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
     jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
     jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
@@ -186,6 +191,10 @@ ERF::writeBuildInfo (std::ostream& os)
     os << " ERF Build Information\n";
     os << PrettyLine;
 
+    os << "ERF version:   " << erf_version::version
+       << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
+    os << "ERF describe:  " << erf_version::git_describe << "\n";
+    os << "ERF git SHA:   " << erf_version::git_sha << "\n";
     os << "build date:    " << buildInfoGetBuildDate() << "\n";
     os << "build machine: " << buildInfoGetBuildMachine() << "\n";
     os << "build dir:     " << buildInfoGetBuildDir() << "\n";

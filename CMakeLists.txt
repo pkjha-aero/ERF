@@ -9,10 +9,18 @@ list(APPEND CMAKE_MESSAGE_CONTEXT "ERF")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 include(CrayCompilerDetection)
 
+# Single source of version truth: the top-level version.txt. The GNU Make build
+# reads the same file (see Exec/Make.ERF). See IMPROVEMENTS_SCOPE.md item 0.1.
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ERF_VERSION_STRING LIMIT_COUNT 1)
+string(STRIP "${ERF_VERSION_STRING}" ERF_VERSION_STRING)
+if(NOT ERF_VERSION_STRING MATCHES "^[0-9]+(\\.[0-9]+)*$")
+  message(FATAL_ERROR "version.txt must contain a numeric MAJOR.MINOR.PATCH string, got '${ERF_VERSION_STRING}'")
+endif()
+
 if(ERF_ENABLE_MORR_FORT OR ERF_ENABLE_WSM6_FORT OR ERF_ENABLE_WDM6_FORT OR ERF_ENABLE_NOAHMP)
-  project(ERF CXX C Fortran)
+  project(ERF VERSION ${ERF_VERSION_STRING} LANGUAGES CXX C Fortran)
 else()
-  project(ERF CXX C)
+  project(ERF VERSION ${ERF_VERSION_STRING} LANGUAGES CXX C)
 endif()
 
 message(STATUS "Configuring ERF")
@@ -725,6 +733,13 @@ file(GLOB_RECURSE ERF_INCLUDES "${PROJECT_SOURCE_DIR}/Source/*.H")
 
 set_target_properties(
   erf_srclib PROPERTIES PUBLIC_HEADER "${ERF_INCLUDES}")
+
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  # Generated ERF_Version.H (see CMake/ERFGitVersion.cmake, IMPROVEMENTS_SCOPE.md 0.1)
+  if(DEFINED ERF_VERSION_HEADER_DIR)
+    install(FILES "${ERF_VERSION_HEADER_DIR}/ERF_Version.H" DESTINATION include)
+  endif()
+endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # Install ERF

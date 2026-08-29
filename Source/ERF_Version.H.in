@@ -1,0 +1,46 @@
+/**
+ * \file ERF_Version.H
+ *
+ * GENERATED FILE -- do not edit and do not commit.
+ *
+ * Produced from Source/ERF_Version.H.in by Tools/gen_erf_version.py during the
+ * build (both the CMake and GNU Make paths). The generated ERF_Version.H is
+ * listed in .gitignore. See IMPROVEMENTS_SCOPE.md item 0.1.
+ *
+ * The namespace is erf_version (not erf) because a bare `erf` collides with the
+ * C error-function builtin, the same reason the codebase uses erf_provenance.
+ */
+#ifndef ERF_VERSION_H_
+#define ERF_VERSION_H_
+
+namespace erf_version {
+
+//! Release version, the single source of which is the top-level version.txt.
+//! This is the fallback identity for builds made outside a git work tree
+//! (release tarball, Spack, container). Prefer git_describe when it is set.
+inline constexpr const char* version = "@ERF_VERSION@";
+
+//! Output of `git describe --tags --always --dirty` at build time, or "unknown"
+//! when ERF was built outside a git work tree.
+inline constexpr const char* git_describe = "@ERF_GIT_DESCRIBE@";
+
+//! Full 40-character commit SHA at build time, or "unknown".
+inline constexpr const char* git_sha = "@ERF_GIT_SHA@";
+
+//! True when the work tree had uncommitted changes (tracked or untracked) at
+//! build time.
+inline constexpr bool git_dirty = @ERF_GIT_DIRTY@;
+
+//! Build timestamp as ISO-8601 UTC (YYYY-MM-DDThh:mm:ssZ). Honors
+//! SOURCE_DATE_EPOCH so reproducible builds get a stable value.
+inline constexpr const char* build_date = "@ERF_BUILD_DATE@";
+
+//! C++ compiler id and version ERF was built with, e.g. "GNU 11.4.0".
+inline constexpr const char* cxx_compiler = "@ERF_CXX_COMPILER@";
+
+//! AMReX version ERF was compiled against, or "unknown".
+inline constexpr const char* amrex_version = "@ERF_AMREX_VERSION@";
+
+} // namespace erf_version
+
+#endif /* ERF_VERSION_H_ */

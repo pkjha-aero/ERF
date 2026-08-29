@@ -585,6 +585,26 @@ CEXE_sources += AMReX_buildInfo.cpp
 CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_scripts
 
+# --- Generated ERF version header: erf::version, erf::git_sha, ... ---
+# Mirrors CMake/ERFGitVersion.cmake. The top-level version.txt is the single
+# source of the version string for both build systems. srcTempDir is already on
+# the compile include path (Make.defs). See IMPROVEMENTS_SCOPE.md item 0.1.
+ERF_VERSION_STRING := $(strip $(shell cat $(ERF_HOME)/version.txt 2>/dev/null))
+ERF_GENERATED_VERSION_HEADER := $(srcTempDir)/ERF_Version.H
+
+.PHONY: erf_version_header
+erf_version_header:
+	@python3 $(ERF_HOME)/Tools/gen_erf_version.py \
+	  --template $(ERF_HOME)/Source/ERF_Version.H.in \
+	  --output $(ERF_GENERATED_VERSION_HEADER) \
+	  --source-dir $(ERF_HOME) \
+	  --project-version "$(ERF_VERSION_STRING)" \
+	  --cxx-compiler "$(COMP) $(COMP_VERSION)" \
+	  --amrex-version "$(shell git -C $(AMREX_HOME) describe --tags --always --dirty 2>/dev/null)"
+
+# Order-only: generate the header before any executable object is compiled.
+$(objForExecs): | erf_version_header
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
 build_noahmp:

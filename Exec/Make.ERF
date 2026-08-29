@@ -589,8 +589,7 @@ INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_scripts
 # Mirrors CMake/ERFGitVersion.cmake. The top-level version.txt is the single source
 # of the planned development version (independent of git tags) for both build systems.
 # srcTempDir is already on the compile include path (Make.defs). Both builds emit this
-# version into binaries and every job_info file. See VERSION_MANAGEMENT.md and
-# IMPROVEMENTS_SCOPE.md item 0.1.
+# version into binaries and every job_info file. See VERSION_MANAGEMENT.md.
 ERF_VERSION_STRING := $(strip $(shell cat $(ERF_HOME)/version.txt 2>/dev/null))
 ERF_GENERATED_VERSION_HEADER := $(srcTempDir)/ERF_Version.H
 

@@ -73,6 +73,51 @@ ERF::writeJobInfo (const std::string& dir,
         jobInfoFile << "\n\n";
     }
 
+    // build information
+    jobInfoFile << PrettyLine;
+    jobInfoFile << " Build Information\n";
+    jobInfoFile << PrettyLine;
+
+    jobInfoFile << "ERF version (target development):  " << erf_version::version
+                << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
+    jobInfoFile << "ERF describe (last release):       " << erf_version::git_describe << "\n";
+    jobInfoFile << "ERF branch:                        " << erf_version::git_branch << "\n";
+    jobInfoFile << "ERF parent:                        " << erf_version::git_parent << "\n";
+    jobInfoFile << "ERF git SHA:                       " << erf_version::git_sha << "\n";
+    // AMReX has no equivalent of erf_version, so its identity still comes from
+    // the AMReX build info. buildInfoGetGitHash(1) is ERF's own hash, which the
+    // erf_version lines above already report, so it is not repeated here.
+    const char* amrex_githash = buildInfoGetGitHash(2);
+    if (strlen(amrex_githash) > 0) {
+      jobInfoFile << "AMReX git hash (last release):     " << amrex_githash << "\n";
+    }
+    jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
+    jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
+    jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
+    jobInfoFile << "AMReX dir:     " << buildInfoGetAMReXDir() << "\n";
+
+    jobInfoFile << "\n";
+
+    jobInfoFile << "COMP:          " << buildInfoGetComp() << "\n";
+    jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
+
+    jobInfoFile << "\n";
+
+    for (int n = 1; n <= buildInfoGetNumModules(); n++) {
+      jobInfoFile << buildInfoGetModuleName(n) << ": "
+                  << buildInfoGetModuleVal(n) << "\n";
+    }
+
+    jobInfoFile << "\n";
+
+    const char* buildgithash = buildInfoGetBuildGitHash();
+    const char* buildgitname = buildInfoGetBuildGitName();
+    if (strlen(buildgithash) > 0) {
+      jobInfoFile << buildgitname << " git hash: " << buildgithash << "\n";
+    }
+
+    jobInfoFile << "\n\n";
+
     // Output information
     jobInfoFile << PrettyLine;
     jobInfoFile << " Output Information\n";
@@ -94,53 +139,6 @@ ERF::writeJobInfo (const std::string& dir,
 
     std::string currentDir = FileSystem::CurrentPath();
     jobInfoFile << "output dir:         " << currentDir << "\n";
-
-    jobInfoFile << "\n\n";
-
-    // build information
-    jobInfoFile << PrettyLine;
-    jobInfoFile << " Build Information\n";
-    jobInfoFile << PrettyLine;
-
-    jobInfoFile << "ERF version (current development): " << erf_version::version
-                << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
-    jobInfoFile << "ERF describe (last release):       " << erf_version::git_describe << "\n";
-    jobInfoFile << "ERF branch:                        " << erf_version::git_branch << "\n";
-    jobInfoFile << "ERF parent:                        " << erf_version::git_parent << "\n";
-    jobInfoFile << "ERF git SHA:                       " << erf_version::git_sha << "\n";
-    jobInfoFile << "build date:    " << buildInfoGetBuildDate() << "\n";
-    jobInfoFile << "build machine: " << buildInfoGetBuildMachine() << "\n";
-    jobInfoFile << "build dir:     " << buildInfoGetBuildDir() << "\n";
-    jobInfoFile << "AMReX dir:     " << buildInfoGetAMReXDir() << "\n";
-
-    jobInfoFile << "\n";
-
-    jobInfoFile << "COMP:          " << buildInfoGetComp() << "\n";
-    jobInfoFile << "COMP version:  " << buildInfoGetCompVersion() << "\n";
-
-    jobInfoFile << "\n";
-
-    for (int n = 1; n <= buildInfoGetNumModules(); n++) {
-      jobInfoFile << buildInfoGetModuleName(n) << ": "
-                  << buildInfoGetModuleVal(n) << "\n";
-    }
-
-    jobInfoFile << "\n";
-
-    const char* githash1 = buildInfoGetGitHash(1);
-    const char* githash2 = buildInfoGetGitHash(2);
-    if (strlen(githash1) > 0) {
-      jobInfoFile << "ERF       git hash: " << githash1 << "\n";
-    }
-    if (strlen(githash2) > 0) {
-      jobInfoFile << "AMReX       git hash: " << githash2 << "\n";
-    }
-
-    const char* buildgithash = buildInfoGetBuildGitHash();
-    const char* buildgitname = buildInfoGetBuildGitName();
-    if (strlen(buildgithash) > 0) {
-      jobInfoFile << buildgitname << " git hash: " << buildgithash << "\n";
-    }
 
     jobInfoFile << "\n\n";
 
@@ -193,12 +191,18 @@ ERF::writeBuildInfo (std::ostream& os)
     os << " ERF Build Information\n";
     os << PrettyLine;
 
-    os << "ERF version (current development): " << erf_version::version
+    os << "ERF version (target development):  " << erf_version::version
        << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
     os << "ERF describe (last release):       " << erf_version::git_describe << "\n";
     os << "ERF branch:                        " << erf_version::git_branch << "\n";
     os << "ERF parent:                        " << erf_version::git_parent << "\n";
     os << "ERF git SHA:                       " << erf_version::git_sha << "\n";
+    // See the matching comment in writeJobInfo: ERF's own hash is already
+    // reported by the erf_version lines above, so only AMReX's is echoed here.
+    const char* amrex_githash = buildInfoGetGitHash(2);
+    if (strlen(amrex_githash) > 0) {
+      os << "AMReX git hash (last release):     " << amrex_githash << "\n";
+    }
     os << "build date:    " << buildInfoGetBuildDate() << "\n";
     os << "build machine: " << buildInfoGetBuildMachine() << "\n";
     os << "build dir:     " << buildInfoGetBuildDir() << "\n";
@@ -225,14 +229,6 @@ ERF::writeBuildInfo (std::ostream& os)
     }
 
     os << "\n";
-    const char* githash1 = buildInfoGetGitHash(1);
-    const char* githash2 = buildInfoGetGitHash(2);
-    if (strlen(githash1) > 0) {
-      os << "ERF       git hash: " << githash1 << "\n";
-    }
-    if (strlen(githash2) > 0) {
-      os << "AMReX       git hash: " << githash2 << "\n";
-    }
 
     const char* buildgithash = buildInfoGetBuildGitHash();
     const char* buildgitname = buildInfoGetBuildGitName();

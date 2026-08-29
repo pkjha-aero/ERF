@@ -576,7 +576,7 @@ function(build_erf_lib erf_lib_name)
   generate_buildinfo(${erf_lib_name} ${PROJECT_SOURCE_DIR})
 
   # Generated ERF_Version.H (erf_version::version, erf_version::git_sha, ...).
-  # See IMPROVEMENTS_SCOPE.md item 0.1.
+  # See VERSION_MANAGEMENT.md.
   include(${PROJECT_SOURCE_DIR}/CMake/ERFGitVersion.cmake)
   erf_attach_version_header(${erf_lib_name})
   if(AMREX_C_SCRIPTS_DIR)

@@ -27,12 +27,30 @@ ERF maintains a single version identity across both build systems (CMake and GNU
 Every output (plotfile, checkpoint) includes a Build Information section with:
 
 ```
-ERF version (current development): 26.09.0          ← from version.txt (development target)
-ERF describe (last release):       26.06-466-g...   ← from git describe (how far past last tag)
-ERF branch:                        development      ← branch the code came from
-ERF parent:                        main             ← parent/upstream branch
-ERF git SHA:                       8bd85a80...      ← the exact commit that built it
+ERF version (target development):  26.09.0          ← from version.txt (development target)
+ERF describe (last release):       26.06-471-g...   ← from git describe (how far past last tag)
+ERF branch:                        version_mgmt     ← branch the code was built from
+ERF parent:                        development      ← upstream, or nearest branch it forked from
+ERF git SHA:                       d483fdbb...      ← the exact commit that built it
+AMReX git hash (last release):     26.07-54-g...    ← AMReX submodule identity
 ```
+
+ERF's own git hash is not repeated below this block: the three `ERF ...` lines above
+already carry it. Only AMReX's is echoed, because AMReX has no `erf_version` equivalent.
+
+#### How `ERF parent:` is determined
+
+Git does not record which branch a branch was created from, so the build resolves it
+in two steps and reports `unknown` rather than guessing if neither applies:
+
+1. **Upstream tracking ref**, when the branch has one — e.g. building on `development`
+   that tracks `origin/development` reports `origin/development`.
+2. **Nearest local branch**, otherwise — the local branch whose merge base with `HEAD`
+   is fewest commits back. A topic branch cut from `development` reports `development`.
+
+Step 2 deliberately scans **local branches only**. A clone of a shared repo can carry
+hundreds of remote-tracking refs (ERF has 400+), and probing each would add two `git`
+calls per ref to every build.
 
 This design lets you:
 - Know what **version you intended** (`26.09.0`)
@@ -67,11 +85,12 @@ This design lets you:
 
 ### Automation (Future)
 
-Phase 3.4 of IMPROVEMENTS_SCOPE.md outlines automating version bumps using Conventional Commits + `release-please` or `git-cliff`, eliminating the manual update step.
+The bump could be automated with Conventional Commits plus a changelog generator such
+as `release-please` or `git-cliff`, which would remove the manual `version.txt` edit.
 
 ## See Also
 
-- [IMPROVEMENTS_SCOPE.md](IMPROVEMENTS_SCOPE.md) item 0.1 for implementation details
+- [Tools/gen_erf_version.py](Tools/gen_erf_version.py) for the header generator
 - [Source/ERF_Version.H.in](Source/ERF_Version.H.in) for the generated header template
 - [CMake/ERFGitVersion.cmake](CMake/ERFGitVersion.cmake) for CMake integration
 - [Exec/Make.ERF](Exec/Make.ERF) for GNU Make integration

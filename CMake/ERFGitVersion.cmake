@@ -3,7 +3,7 @@
 # Generates ${ERF_VERSION_HEADER_DIR}/ERF_Version.H from Source/ERF_Version.H.in
 # via Tools/gen_erf_version.py, once at configure time and again on every build,
 # and exposes erf_attach_version_header(<target>) to put the generated header on
-# a target's include path. See IMPROVEMENTS_SCOPE.md item 0.1.
+# a target's include path. See VERSION_MANAGEMENT.md.
 #
 # The generator rewrites the header only when its contents change, so a stable
 # git state does not trigger recompiles.

@@ -3,7 +3,7 @@
 
 This is invoked by *both* the CMake build (CMake/ERFGitVersion.cmake) and the
 GNU Make build (Exec/Make.ERF) so the two paths stamp identical version
-metadata into the binary.  See IMPROVEMENTS_SCOPE.md item 0.1.
+metadata into the binary.  See VERSION_MANAGEMENT.md.
 
 The output is written only when its contents change, so an unchanged git state
 does not force a rebuild of the translation units that include the header.
@@ -56,6 +56,52 @@ def _build_date():
     return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _parent_branch(source_dir, current_branch):
+    """Best-effort parent of the current branch.
+
+    Git does not record which branch a branch was created from, so this
+    resolves in two steps:
+
+      1. The configured upstream tracking ref, when there is one. That is the
+         branch this one is set up to merge back into.
+      2. Otherwise the local branch whose merge base with HEAD is nearest,
+         which is what "branched off X" means in practice.
+
+    Step 2 scans local branches only. A clone of a shared repository can carry
+    hundreds of remote-tracking refs (ERF has 400+), and probing each one would
+    add two git invocations per ref to every build.
+
+    Returns "unknown" when neither step resolves, rather than naming a branch
+    that was never consulted.
+    """
+    upstream = _git(source_dir, "rev-parse", "--abbrev-ref", "@{upstream}")
+    if upstream:
+        return upstream
+
+    if current_branch == "unknown":
+        return "unknown"
+
+    best = None
+    refs = _git(source_dir, "for-each-ref", "--format=%(refname:short)", "refs/heads")
+    for ref in refs.splitlines():
+        ref = ref.strip()
+        if not ref or ref == current_branch:
+            continue
+        base = _git(source_dir, "merge-base", "HEAD", ref)
+        if not base:
+            continue
+        distance = _git(source_dir, "rev-list", "--count", "{}..HEAD".format(base))
+        if not distance.isdigit():
+            continue
+        # Nearest merge base wins; shorter then lexically smaller name breaks ties
+        # so the result does not depend on ref enumeration order.
+        candidate = (int(distance), len(ref), ref)
+        if best is None or candidate < best:
+            best = candidate
+
+    return best[2] if best else "unknown"
+
+
 def _resolve(source_dir):
     inside_tree = _git(source_dir, "rev-parse", "--is-inside-work-tree") == "true"
     if not inside_tree:
@@ -65,10 +111,7 @@ def _resolve(source_dir):
     sha = _git(source_dir, "rev-parse", "HEAD") or "unknown"
     dirty = "true" if _git(source_dir, "status", "--porcelain") else "false"
     branch = _git(source_dir, "symbolic-ref", "--short", "HEAD") or "unknown"
-    # Parent branch: for a tracking branch, get the upstream; otherwise try 'main'
-    parent = _git(source_dir, "rev-parse", "--abbrev-ref", "@{u}") or "main"
-    if parent.startswith("fatal:"):
-        parent = "main"
+    parent = _parent_branch(source_dir, branch)
     return describe, sha, dirty, branch, parent
 
 

@@ -5,7 +5,7 @@
  *
  * Produced from Source/ERF_Version.H.in by Tools/gen_erf_version.py during the
  * build (both the CMake and GNU Make paths). The generated ERF_Version.H is
- * listed in .gitignore. See IMPROVEMENTS_SCOPE.md item 0.1.
+ * listed in .gitignore. See VERSION_MANAGEMENT.md.
  *
  * The namespace is erf_version (not erf) because a bare `erf` collides with the
  * C error-function builtin, the same reason the codebase uses erf_provenance.

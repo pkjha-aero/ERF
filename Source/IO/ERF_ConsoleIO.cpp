@@ -104,7 +104,7 @@ void ERF::print_banner (MPI_Comm comm, std::ostream& out)
         << "  ERF version      :: " << erf_version::version
         << (erf_version::git_dirty ? " (dirty)" : "") << std::endl
         << "  ERF branch       :: " << erf_version::git_branch << std::endl
-        << "  ERF Git SHA      :: " << erf_version::git_sha << std::endl
+        << "  ERF Git SHA      :: " << erf_version::git_sha_short << std::endl
         << "  AMReX Git SHA    :: " << githash2 << std::endl
         << "  AMReX version    :: " << amrex::Version() << std::endl << std::endl
         << "  Exec. time       :: " << tstamp

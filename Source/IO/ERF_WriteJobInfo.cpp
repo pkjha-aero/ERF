@@ -82,7 +82,7 @@ ERF::writeJobInfo (const std::string& dir,
                 << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
     jobInfoFile << "ERF branch (current):              " << erf_version::git_branch << "\n";
     jobInfoFile << "ERF parent (of current branch):    " << erf_version::git_parent << "\n";
-    jobInfoFile << "ERF git SHA:                       " << erf_version::git_sha << "\n";
+    jobInfoFile << "ERF git SHA:                       " << erf_version::git_sha_short << "\n";
     // AMReX has no equivalent of erf_version, so its identity still comes from
     // the AMReX build info. buildInfoGetGitHash(1) is ERF's own hash, which the
     // erf_version lines above already report, so it is not repeated here.
@@ -194,7 +194,7 @@ ERF::writeBuildInfo (std::ostream& os)
        << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
     os << "ERF branch (current):              " << erf_version::git_branch << "\n";
     os << "ERF parent (of current branch):    " << erf_version::git_parent << "\n";
-    os << "ERF git SHA:                       " << erf_version::git_sha << "\n";
+    os << "ERF git SHA:                       " << erf_version::git_sha_short << "\n";
     // See the matching comment in writeJobInfo: ERF's own hash is already
     // reported by the erf_version lines above, so only AMReX's is echoed here.
     const char* amrex_githash = buildInfoGetGitHash(2);

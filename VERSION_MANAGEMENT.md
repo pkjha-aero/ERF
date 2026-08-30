@@ -44,13 +44,48 @@ Every output (plotfile, checkpoint) includes a Build Information section with:
 ERF version (last release):        26.06-472-g...   ← git describe --tags
 ERF branch (current):              version_mgmt     ← branch the code was built from
 ERF parent (of current branch):    development      ← upstream, or nearest branch it forked from
-ERF git SHA:                       0b28e9ad...      ← full 40-char commit that built it
+ERF git SHA:                       0dcca5c729ea     ← commit that built it, abbreviated
 AMReX git hash (last release):     26.07-54-g...    ← AMReX submodule identity
 ```
 
 The `(last release)` in the version label names the **anchor** of the string — its leading
 `26.06` — not the whole value. The trailing `-472-g0b28e9ad` says the build is 472 commits
 past that release, at commit `0b28e9ad`.
+
+### Changing how much of the hash is printed
+
+`ERF git SHA:` prints 12 characters by default. The **full 40-character hash is always
+retained** in the binary as `erf_version::git_sha` — the abbreviation is a display choice
+only, so shortening it discards nothing.
+
+One value controls every place ERF prints a hash (`job_info`, `--describe`, and the startup
+banner). In [`Source/ERF_Version.H.in`](Source/ERF_Version.H.in):
+
+```cpp
+inline constexpr int sha_display_chars = 12;   // ← change this
+```
+
+Rebuild and all three sites follow. To print the complete hash at one particular site
+instead, use the full value directly rather than changing the shared width:
+
+```cpp
+jobInfoFile << "ERF git SHA:  " << erf_version::git_sha       << "\n";  // all 40
+jobInfoFile << "ERF git SHA:  " << erf_version::git_sha_short << "\n";  // abbreviated
+```
+
+Why 12 is the default:
+
+- It matches what AMReX's own build info emits (`git describe --abbrev=12`), so the ERF
+  and AMReX hashes in `job_info` are the same width and line up.
+- Git would auto-select 9 characters for a repository of ERF's current size (~119k
+  objects); 12 leaves generous headroom as history grows, while staying short enough to
+  read at a glance and paste into a command.
+- `git show`, `git log` and friends accept any unambiguous prefix, so a 12-character
+  value pasted from `job_info` works directly.
+
+`git_sha_short` is a `constexpr std::string_view`, so the abbreviation costs nothing at
+runtime — no allocation, no copy. Its `substr` clamps rather than throws, so the `unknown`
+placeholder from a non-git build passes through whole instead of being cut to `unknow`.
 
 A dirty work tree is reported as `(dirty work tree)` after the version rather than as a
 `-dirty` suffix inside it, so the version string stays clean and the state is stated once.

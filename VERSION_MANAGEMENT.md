@@ -85,7 +85,7 @@ Why 12 is the default:
 
 `git_sha_short` is a `constexpr std::string_view`, so the abbreviation costs nothing at
 runtime — no allocation, no copy. Its `substr` clamps rather than throws, so the `unknown`
-placeholder from a non-git build passes through whole instead of being cut to `unknow`.
+placeholder from a non-git build passes through whole instead of being cut to `unknown`.
 
 A dirty work tree is reported as `(dirty work tree)` after the version rather than as a
 `-dirty` suffix inside it, so the version string stays clean and the state is stated once.

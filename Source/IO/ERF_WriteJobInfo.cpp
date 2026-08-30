@@ -78,11 +78,10 @@ ERF::writeJobInfo (const std::string& dir,
     jobInfoFile << " Build Information\n";
     jobInfoFile << PrettyLine;
 
-    jobInfoFile << "ERF version (target development):  " << erf_version::version
+    jobInfoFile << "ERF version (last release):        " << erf_version::version
                 << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
-    jobInfoFile << "ERF describe (last release):       " << erf_version::git_describe << "\n";
-    jobInfoFile << "ERF branch:                        " << erf_version::git_branch << "\n";
-    jobInfoFile << "ERF parent:                        " << erf_version::git_parent << "\n";
+    jobInfoFile << "ERF branch (current):              " << erf_version::git_branch << "\n";
+    jobInfoFile << "ERF parent (of current branch):    " << erf_version::git_parent << "\n";
     jobInfoFile << "ERF git SHA:                       " << erf_version::git_sha << "\n";
     // AMReX has no equivalent of erf_version, so its identity still comes from
     // the AMReX build info. buildInfoGetGitHash(1) is ERF's own hash, which the
@@ -191,11 +190,10 @@ ERF::writeBuildInfo (std::ostream& os)
     os << " ERF Build Information\n";
     os << PrettyLine;
 
-    os << "ERF version (target development):  " << erf_version::version
+    os << "ERF version (last release):        " << erf_version::version
        << (erf_version::git_dirty ? " (dirty work tree)" : "") << "\n";
-    os << "ERF describe (last release):       " << erf_version::git_describe << "\n";
-    os << "ERF branch:                        " << erf_version::git_branch << "\n";
-    os << "ERF parent:                        " << erf_version::git_parent << "\n";
+    os << "ERF branch (current):              " << erf_version::git_branch << "\n";
+    os << "ERF parent (of current branch):    " << erf_version::git_parent << "\n";
     os << "ERF git SHA:                       " << erf_version::git_sha << "\n";
     // See the matching comment in writeJobInfo: ERF's own hash is already
     // reported by the erf_version lines above, so only AMReX's is echoed here.

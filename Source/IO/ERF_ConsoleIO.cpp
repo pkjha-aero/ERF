@@ -95,18 +95,16 @@ void ERF::print_banner (MPI_Comm comm, std::ostream& out)
     const std::string tstamp(time_buf);
 #endif
 
-    const char* githash1 = amrex::buildInfoGetGitHash(1);
     const char* githash2 = amrex::buildInfoGetGitHash(2);
 
     // clang-format off
     out << dbl_line
         << "                ERF (https://github.com/erf-model/ERF)"
         << std::endl << std::endl
-        << "  ERF version (dev):: " << erf_version::version
+        << "  ERF version      :: " << erf_version::version
         << (erf_version::git_dirty ? " (dirty)" : "") << std::endl
-        << "  ERF last release :: " << erf_version::git_describe << std::endl
         << "  ERF branch       :: " << erf_version::git_branch << std::endl
-        << "  ERF Git SHA      :: " << githash1 << std::endl
+        << "  ERF Git SHA      :: " << erf_version::git_sha << std::endl
         << "  AMReX Git SHA    :: " << githash2 << std::endl
         << "  AMReX version    :: " << amrex::Version() << std::endl << std::endl
         << "  Exec. time       :: " << tstamp

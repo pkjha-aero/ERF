@@ -586,11 +586,11 @@ CEXE_headers += $(AMREX_HOME)/Tools/C_scripts/AMReX_buildInfo.H
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Tools/C_scripts
 
 # --- Generated ERF version header: erf_version::version, erf_version::git_sha, ... ---
-# Mirrors CMake/ERFGitVersion.cmake. The top-level version.txt is the single source
-# of the planned development version (independent of git tags) for both build systems.
-# srcTempDir is already on the compile include path (Make.defs). Both builds emit this
-# version into binaries and every job_info file. See VERSION_MANAGEMENT.md.
-ERF_VERSION_STRING := $(strip $(shell cat $(ERF_HOME)/version.txt 2>/dev/null))
+# Mirrors CMake/ERFGitVersion.cmake. The version is derived by the script from
+# `git describe --tags`, so there is no version file for the two build systems to
+# disagree about. srcTempDir is already on the compile include path (Make.defs).
+# Both builds emit this into binaries and every job_info file.
+# See VERSION_MANAGEMENT.md.
 ERF_GENERATED_VERSION_HEADER := $(srcTempDir)/ERF_Version.H
 
 .PHONY: erf_version_header
@@ -599,7 +599,6 @@ erf_version_header:
 	  --template $(ERF_HOME)/Source/ERF_Version.H.in \
 	  --output $(ERF_GENERATED_VERSION_HEADER) \
 	  --source-dir $(ERF_HOME) \
-	  --project-version "$(ERF_VERSION_STRING)" \
 	  --cxx-compiler "$(COMP) $(COMP_VERSION)" \
 	  --amrex-version "$(shell git -C $(AMREX_HOME) describe --tags --always --dirty 2>/dev/null)"
 

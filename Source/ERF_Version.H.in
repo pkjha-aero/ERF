@@ -15,14 +15,15 @@
 
 namespace erf_version {
 
-//! Release version, the single source of which is the top-level version.txt.
-//! This is the fallback identity for builds made outside a git work tree
-//! (release tarball, Spack, container). Prefer git_describe when it is set.
+//! ERF's version, derived at build time as `git describe --tags`: the nearest
+//! release tag, commits since it, and the abbreviated commit -- for example
+//! "26.06-471-gd483fdbbc". Exactly the tag alone when built at a release.
+//!
+//! This is derived, never declared, so it cannot drift from the code it labels.
+//! Reads "unknown" when ERF is built outside a git work tree (release tarball,
+//! Spack staging, container build context); git_sha is "unknown" there too, so
+//! check git_dirty and git_branch before relying on provenance in that case.
 inline constexpr const char* version = "@ERF_VERSION@";
-
-//! Output of `git describe --tags --always --dirty` at build time, or "unknown"
-//! when ERF was built outside a git work tree.
-inline constexpr const char* git_describe = "@ERF_GIT_DESCRIBE@";
 
 //! Full 40-character commit SHA at build time, or "unknown".
 inline constexpr const char* git_sha = "@ERF_GIT_SHA@";

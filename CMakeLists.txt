@@ -9,14 +9,26 @@ list(APPEND CMAKE_MESSAGE_CONTEXT "ERF")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 include(CrayCompilerDetection)
 
-# Single source of version truth: the top-level version.txt contains the planned
-# development version (e.g., 26.08.0), independent of git tags. The GNU Make build
-# reads the same file (see Exec/Make.ERF). Both build systems embed this into binaries
-# and every job_info file. See VERSION_MANAGEMENT.md.
-file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" ERF_VERSION_STRING LIMIT_COUNT 1)
-string(STRIP "${ERF_VERSION_STRING}" ERF_VERSION_STRING)
-if(NOT ERF_VERSION_STRING MATCHES "^[0-9]+(\\.[0-9]+)*$")
-  message(FATAL_ERROR "version.txt must contain a numeric MAJOR.MINOR.PATCH string, got '${ERF_VERSION_STRING}'")
+# The version is derived from the nearest release tag, never declared in a file
+# that a human has to remember to update. --tags is required because ERF's release
+# tags are lightweight, which plain `git describe` ignores. Falls back to 0.0.0
+# outside a git work tree, where no version can be established.
+# See VERSION_MANAGEMENT.md.
+set(ERF_VERSION_STRING "0.0.0")
+find_package(Git QUIET)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE _erf_git_tag
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE _erf_git_tag_rc)
+  # project() only accepts a numeric dotted version, so a non-numeric tag such as
+  # an archive/ or manuscript marker is ignored rather than failing the configure.
+  if(_erf_git_tag_rc EQUAL 0 AND _erf_git_tag MATCHES "^[0-9]+(\\.[0-9]+)*$")
+    set(ERF_VERSION_STRING "${_erf_git_tag}")
+  endif()
 endif()
 
 if(ERF_ENABLE_MORR_FORT OR ERF_ENABLE_WSM6_FORT OR ERF_ENABLE_WDM6_FORT OR ERF_ENABLE_NOAHMP)

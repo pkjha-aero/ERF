@@ -27,12 +27,6 @@ set(_erf_version_template "${PROJECT_SOURCE_DIR}/Source/ERF_Version.H.in")
 set(_erf_version_output   "${ERF_VERSION_HEADER_DIR}/ERF_Version.H")
 set(_erf_version_script   "${PROJECT_SOURCE_DIR}/Tools/gen_erf_version.py")
 
-if(DEFINED PROJECT_VERSION AND NOT PROJECT_VERSION STREQUAL "")
-  set(_erf_project_version "${PROJECT_VERSION}")
-else()
-  set(_erf_project_version "0.0.0")
-endif()
-
 # Best-effort AMReX version for the header; the runtime banner still prints
 # amrex::Version() regardless of what is captured here.
 set(_erf_amrex_version "unknown")
@@ -47,7 +41,6 @@ set(_erf_version_command
     --template        "${_erf_version_template}"
     --output          "${_erf_version_output}"
     --source-dir      "${PROJECT_SOURCE_DIR}"
-    --project-version "${_erf_project_version}"
     --cxx-compiler    "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
     --amrex-version   "${_erf_amrex_version}")
 
@@ -61,10 +54,13 @@ if(NOT _erf_version_rc EQUAL 0 OR NOT EXISTS "${_erf_version_output}")
     "ERF: could not run Tools/gen_erf_version.py (rc=${_erf_version_rc}); "
     "writing a placeholder ERF_Version.H without git metadata")
   string(TIMESTAMP _erf_fallback_date "%Y-%m-%dT%H:%M:%SZ" UTC)
-  set(ERF_VERSION       "${_erf_project_version}")
-  set(ERF_GIT_DESCRIBE  "unknown")
+  # Every placeholder in the template must be set here, or the header ships with
+  # a literal @ERF_...@ in it and fails to compile.
+  set(ERF_VERSION       "${ERF_VERSION_STRING}")
   set(ERF_GIT_SHA       "unknown")
   set(ERF_GIT_DIRTY     "false")
+  set(ERF_GIT_BRANCH    "unknown")
+  set(ERF_GIT_PARENT    "unknown")
   set(ERF_BUILD_DATE    "${_erf_fallback_date}")
   set(ERF_CXX_COMPILER  "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
   set(ERF_AMREX_VERSION "${_erf_amrex_version}")

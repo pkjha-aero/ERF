@@ -27,22 +27,11 @@ set(_erf_version_template "${PROJECT_SOURCE_DIR}/Source/ERF_Version.H.in")
 set(_erf_version_output   "${ERF_VERSION_HEADER_DIR}/ERF_Version.H")
 set(_erf_version_script   "${PROJECT_SOURCE_DIR}/Tools/gen_erf_version.py")
 
-# Best-effort AMReX version for the header; the runtime banner still prints
-# amrex::Version() regardless of what is captured here.
-set(_erf_amrex_version "unknown")
-if(DEFINED AMReX_VERSION AND NOT AMReX_VERSION STREQUAL "")
-  set(_erf_amrex_version "${AMReX_VERSION}")
-elseif(DEFINED AMREX_GIT_VERSION AND NOT AMREX_GIT_VERSION STREQUAL "")
-  set(_erf_amrex_version "${AMREX_GIT_VERSION}")
-endif()
-
 set(_erf_version_command
     "${_erf_version_python}" "${_erf_version_script}"
     --template        "${_erf_version_template}"
     --output          "${_erf_version_output}"
-    --source-dir      "${PROJECT_SOURCE_DIR}"
-    --cxx-compiler    "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
-    --amrex-version   "${_erf_amrex_version}")
+    --source-dir      "${PROJECT_SOURCE_DIR}")
 
 file(MAKE_DIRECTORY "${ERF_VERSION_HEADER_DIR}")
 
@@ -53,7 +42,6 @@ if(NOT _erf_version_rc EQUAL 0 OR NOT EXISTS "${_erf_version_output}")
   message(WARNING
     "ERF: could not run Tools/gen_erf_version.py (rc=${_erf_version_rc}); "
     "writing a placeholder ERF_Version.H without git metadata")
-  string(TIMESTAMP _erf_fallback_date "%Y-%m-%dT%H:%M:%SZ" UTC)
   # Every placeholder in the template must be set here, or the header ships with
   # a literal @ERF_...@ in it and fails to compile.
   set(ERF_VERSION       "${ERF_VERSION_STRING}")
@@ -61,9 +49,6 @@ if(NOT _erf_version_rc EQUAL 0 OR NOT EXISTS "${_erf_version_output}")
   set(ERF_GIT_DIRTY     "false")
   set(ERF_GIT_BRANCH    "unknown")
   set(ERF_GIT_PARENT    "unknown")
-  set(ERF_BUILD_DATE    "${_erf_fallback_date}")
-  set(ERF_CXX_COMPILER  "${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
-  set(ERF_AMREX_VERSION "${_erf_amrex_version}")
   configure_file("${_erf_version_template}" "${_erf_version_output}" @ONLY)
 endif()
 

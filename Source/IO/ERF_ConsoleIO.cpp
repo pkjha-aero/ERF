@@ -69,6 +69,31 @@ void ERF::print_error (MPI_Comm comm, const std::string& msg)
     std::cout << "ERROR: " << msg << std::endl;
 }
 
+void ERF::print_version (MPI_Comm comm, std::ostream& out)
+{
+#ifdef AMREX_USE_MPI
+    int irank = 0;
+    MPI_Comm_rank(comm, &irank);
+
+    // Only root process does the printing
+    if (irank != 0) return;
+#else
+    amrex::ignore_unused(comm);
+#endif
+
+    // Terse build identity, for `erf --version`. The full 40-character commit is
+    // printed here rather than the abbreviation used elsewhere, because this is
+    // the form meant to be copied into a bug report or a provenance record.
+    out << "ERF " << erf_version::version
+        << (erf_version::git_dirty ? " (dirty work tree)" : "") << std::endl
+        << "  commit   : " << erf_version::git_sha << std::endl
+        << "  branch   : " << erf_version::git_branch
+        << " (parent " << erf_version::git_parent << ")" << std::endl
+        << "  compiler : " << amrex::buildInfoGetComp()
+        << " " << amrex::buildInfoGetCompVersion() << std::endl
+        << "  AMReX    : " << amrex::Version() << std::endl;
+}
+
 void ERF::print_banner (MPI_Comm comm, std::ostream& out)
 {
 #ifdef AMREX_USE_MPI

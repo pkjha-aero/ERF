@@ -99,14 +99,30 @@ already carry it. Only AMReX's is echoed, because AMReX has no `erf_version` equ
 Git does not record which branch a branch was created from, so the build resolves it
 in two steps and reports `unknown` rather than guessing if neither applies:
 
-1. **Upstream tracking ref**, when the branch has one — e.g. building on `development`
-   that tracks `origin/development` reports `origin/development`.
-2. **Nearest local branch**, otherwise — the local branch whose merge base with `HEAD`
-   is fewest commits back. A topic branch cut from `development` reports `development`.
+1. **The nearest local branch that HEAD descends from.** Requiring an *ancestor* is
+   what makes the answer meaningful. It rejects unrelated topic branches, whose merge
+   base is some ancient shared commit, and equally rejects branches that have already
+   merged this one in — those are downstream, not parents. Where several ancestors
+   qualify, the nearest wins, so a branch descending from both `main` and `development`
+   reports `development`.
+2. **Otherwise the upstream tracking ref.** This is the answer for an integration
+   branch like `development`, which by definition has no local branch above it and
+   whose real parent is the remote it tracks.
 
-Step 2 deliberately scans **local branches only**. A clone of a shared repo can carry
-hundreds of remote-tracking refs (ERF has 400+), and probing each would add two `git`
-calls per ref to every build.
+| Building on | Reports | Why |
+|---|---|---|
+| `version_mgmt`, cut from `development` | `development` | nearest local ancestor |
+| `development`, tracking `pkjha/development` | `pkjha/development` | no local ancestor, so upstream |
+| detached HEAD at tag `26.06` | `unknown` | no ancestor, no upstream — nothing is guessed |
+
+The order matters and is deliberately not the reverse. A topic branch that has been
+pushed tracks *its own remote copy*, so consulting the upstream first would answer
+`pkjha/version_mgmt` — true, but self-referential, and not the line of work the branch
+belongs to.
+
+Step 1 deliberately scans **local branches only**. A clone of a shared repo can carry
+hundreds of remote-tracking refs (ERF has 400+), and probing each would add `git`
+invocations per ref to every build.
 
 #### Inspecting the branch graph yourself
 

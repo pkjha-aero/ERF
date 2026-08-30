@@ -20,7 +20,6 @@ import argparse
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
 
 _PLACEHOLDERS = (
     "ERF_VERSION",
@@ -28,9 +27,6 @@ _PLACEHOLDERS = (
     "ERF_GIT_DIRTY",
     "ERF_GIT_BRANCH",
     "ERF_GIT_PARENT",
-    "ERF_BUILD_DATE",
-    "ERF_CXX_COMPILER",
-    "ERF_AMREX_VERSION",
 )
 
 
@@ -46,63 +42,74 @@ def _git(source_dir, *args):
     return out.decode("utf-8", "replace").strip()
 
 
-def _build_date():
-    """ISO-8601 UTC build timestamp, honoring SOURCE_DATE_EPOCH."""
-    epoch = os.environ.get("SOURCE_DATE_EPOCH")
-    if epoch:
-        try:
-            dt = datetime.fromtimestamp(int(epoch), tz=timezone.utc)
-        except (ValueError, OverflowError, OSError):
-            dt = datetime.now(timezone.utc)
-    else:
-        dt = datetime.now(timezone.utc)
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+def _git_ok(source_dir, *args):
+    """True when a git command exits zero.
+
+    Needed for commands that answer through their exit status and print nothing,
+    such as `merge-base --is-ancestor`, where _git cannot distinguish success
+    from failure because both yield an empty string.
+    """
+    try:
+        subprocess.check_call(
+            ["git", "-C", source_dir, *args],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return True
 
 
 def _parent_branch(source_dir, current_branch):
     """Best-effort parent of the current branch.
 
-    Git does not record which branch a branch was created from, so this
-    resolves in two steps:
+    Git does not record which branch a branch was created from, so this resolves
+    in two steps:
 
-      1. The configured upstream tracking ref, when there is one. That is the
-         branch this one is set up to merge back into.
-      2. Otherwise the local branch whose merge base with HEAD is nearest,
-         which is what "branched off X" means in practice.
+      1. The nearest local branch that HEAD descends from. Requiring an ancestor
+         is what makes the answer meaningful: a topic branch cut from
+         `development` reports `development`, while an unrelated topic branch,
+         whose merge base is some ancient shared commit, is rejected outright --
+         as is a branch that has already merged this one in, which is downstream
+         rather than a parent. Among several ancestors the nearest wins, so a
+         branch descending from both `main` and `development` reports the latter.
+      2. Otherwise the configured upstream tracking ref. This is the answer for
+         an integration branch like `development`, which by definition has no
+         local branch above it, and whose real parent is the remote it tracks.
 
-    Step 2 scans local branches only. A clone of a shared repository can carry
+    Deliberately not the other order: a pushed topic branch tracks its own remote
+    copy, so consulting the upstream first would answer `<remote>/<same-name>` --
+    true but self-referential, and not the branch the work belongs to.
+
+    Step 1 scans local branches only. A clone of a shared repository can carry
     hundreds of remote-tracking refs (ERF has 400+), and probing each one would
-    add two git invocations per ref to every build.
+    add git invocations per ref to every build.
 
     Returns "unknown" when neither step resolves, rather than naming a branch
     that was never consulted.
     """
-    upstream = _git(source_dir, "rev-parse", "--abbrev-ref", "@{upstream}")
-    if upstream:
-        return upstream
-
-    if current_branch == "unknown":
-        return "unknown"
-
     best = None
     refs = _git(source_dir, "for-each-ref", "--format=%(refname:short)", "refs/heads")
     for ref in refs.splitlines():
         ref = ref.strip()
         if not ref or ref == current_branch:
             continue
-        base = _git(source_dir, "merge-base", "HEAD", ref)
-        if not base:
+        if not _git_ok(source_dir, "merge-base", "--is-ancestor", ref, "HEAD"):
             continue
-        distance = _git(source_dir, "rev-list", "--count", "{}..HEAD".format(base))
+        distance = _git(source_dir, "rev-list", "--count", "{}..HEAD".format(ref))
         if not distance.isdigit():
             continue
-        # Nearest merge base wins; shorter then lexically smaller name breaks ties
+        # Nearest ancestor wins; shorter then lexically smaller name breaks ties
         # so the result does not depend on ref enumeration order.
         candidate = (int(distance), len(ref), ref)
         if best is None or candidate < best:
             best = candidate
 
-    return best[2] if best else "unknown"
+    if best:
+        return best[2]
+
+    upstream = _git(source_dir, "rev-parse", "--abbrev-ref", "@{upstream}")
+    return upstream or "unknown"
 
 
 def _resolve(source_dir):
@@ -122,13 +129,21 @@ def _resolve(source_dir):
     return version, sha, dirty, branch, parent
 
 
+def version_string(source_dir):
+    """The derived version alone, for callers that need nothing else.
+
+    Importable so that anything else describing this source tree -- the Sphinx
+    configuration, for one -- reports the same version the build stamps into the
+    binary, instead of reimplementing the git call and drifting from it.
+    """
+    return _resolve(source_dir)[0]
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--template", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--source-dir", required=True)
-    parser.add_argument("--cxx-compiler", default="unknown")
-    parser.add_argument("--amrex-version", default="unknown")
     args = parser.parse_args(argv)
 
     version, sha, dirty, branch, parent = _resolve(args.source_dir)
@@ -142,9 +157,6 @@ def main(argv=None):
         "ERF_GIT_DIRTY": dirty,
         "ERF_GIT_BRANCH": branch,
         "ERF_GIT_PARENT": parent,
-        "ERF_BUILD_DATE": _build_date(),
-        "ERF_CXX_COMPILER": args.cxx_compiler.strip() or "unknown",
-        "ERF_AMREX_VERSION": args.amrex_version.strip() or "unknown",
     }
     for key in _PLACEHOLDERS:
         text = text.replace("@{}@".format(key), values[key])

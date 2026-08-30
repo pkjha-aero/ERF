@@ -176,6 +176,17 @@ return code;
         }
     }
 
+    // Look for "--version" and print the build identity. Kept separate from
+    // --describe, which dumps the full build configuration: --version is the
+    // short answer to "which ERF is this?" and is meant to be pasted into a bug
+    // report. MPI is already up by this point, so finalize before returning.
+    for (auto i = 1; i < argc; i++) {
+        if (std::string(argv[i]) == "--version") {
+            ERF::print_version(MPI_COMM_WORLD, std::cout);
+            return finalize_mpi_and_return(0);
+        }
+    }
+
     if (argc >= 2) {
         for (auto i = 1; i < argc; i++) {
             if (std::string(argv[i]) == "--describe") {

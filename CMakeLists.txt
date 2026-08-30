@@ -9,10 +9,32 @@ list(APPEND CMAKE_MESSAGE_CONTEXT "ERF")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake")
 include(CrayCompilerDetection)
 
+# The version is derived from the nearest release tag, never declared in a file
+# that a human has to remember to update. --tags is required because ERF's release
+# tags are lightweight, which plain `git describe` ignores. Falls back to 0.0.0
+# outside a git work tree, where no version can be established.
+# See VERSION_MANAGEMENT.md.
+set(ERF_VERSION_STRING "0.0.0")
+find_package(Git QUIET)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE _erf_git_tag
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE _erf_git_tag_rc)
+  # project() only accepts a numeric dotted version, so a non-numeric tag such as
+  # an archive/ or manuscript marker is ignored rather than failing the configure.
+  if(_erf_git_tag_rc EQUAL 0 AND _erf_git_tag MATCHES "^[0-9]+(\\.[0-9]+)*$")
+    set(ERF_VERSION_STRING "${_erf_git_tag}")
+  endif()
+endif()
+
 if(ERF_ENABLE_MORR_FORT OR ERF_ENABLE_WSM6_FORT OR ERF_ENABLE_WDM6_FORT OR ERF_ENABLE_NOAHMP)
-  project(ERF CXX C Fortran)
+  project(ERF VERSION ${ERF_VERSION_STRING} LANGUAGES CXX C Fortran)
 else()
-  project(ERF CXX C)
+  project(ERF VERSION ${ERF_VERSION_STRING} LANGUAGES CXX C)
 endif()
 
 message(STATUS "Configuring ERF")
@@ -725,6 +747,13 @@ file(GLOB_RECURSE ERF_INCLUDES "${PROJECT_SOURCE_DIR}/Source/*.H")
 
 set_target_properties(
   erf_srclib PROPERTIES PUBLIC_HEADER "${ERF_INCLUDES}")
+
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  # Generated ERF_Version.H (see CMake/ERFGitVersion.cmake)
+  if(DEFINED ERF_VERSION_HEADER_DIR)
+    install(FILES "${ERF_VERSION_HEADER_DIR}/ERF_Version.H" DESTINATION include)
+  endif()
+endif()
 
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   # Install ERF

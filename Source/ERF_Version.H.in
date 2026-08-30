@@ -1,0 +1,71 @@
+/**
+ * \file ERF_Version.H
+ *
+ * GENERATED FILE -- do not edit and do not commit.
+ *
+ * Produced from Source/ERF_Version.H.in by Tools/gen_erf_version.py during the
+ * build (both the CMake and GNU Make paths). The generated ERF_Version.H is
+ * listed in .gitignore. See VERSION_MANAGEMENT.md.
+ *
+ * The namespace is erf_version (not erf) because a bare `erf` collides with the
+ * C error-function builtin, the same reason the codebase uses erf_provenance.
+ */
+#ifndef ERF_VERSION_H_
+#define ERF_VERSION_H_
+
+#include <string_view>
+
+namespace erf_version {
+
+//! ERF's version, derived at build time as `git describe --tags`: the nearest
+//! release tag, commits since it, and the abbreviated commit -- for example
+//! "26.06-471-gd483fdbbc". Exactly the tag alone when built at a release.
+//!
+//! This is derived, never declared, so it cannot drift from the code it labels.
+//! Reads "unknown" when ERF is built outside a git work tree (release tarball,
+//! Spack staging, container build context); git_sha is "unknown" there too, so
+//! check git_dirty and git_branch before relying on provenance in that case.
+inline constexpr const char* version = "@ERF_VERSION@";
+
+//! Full 40-character commit SHA at build time, or "unknown". This always holds
+//! the complete hash; see git_sha_short for the abbreviated display form.
+inline constexpr const char* git_sha = "@ERF_GIT_SHA@";
+
+//! How many leading characters of git_sha ERF prints in human-readable output.
+//!
+//! THIS IS THE KNOB: change this one value to widen or narrow every place ERF
+//! prints an abbreviated hash (job_info, --describe, the startup banner). The
+//! full hash is never discarded, so nothing is lost by shortening it -- code
+//! that needs the complete value keeps using git_sha.
+//!
+//! 12 matches what AMReX's own build info emits (`git describe --abbrev=12`),
+//! so the two hashes in job_info line up. Git itself would auto-pick 9 for a
+//! repository of ERF's size (~119k objects), so 12 leaves generous headroom
+//! against collisions while staying short enough to read and to paste.
+inline constexpr int sha_display_chars = 12;
+
+//! git_sha abbreviated to sha_display_chars, for human-readable output.
+//! substr clamps rather than throws when the source is shorter, so the
+//! "unknown" placeholder passes through intact.
+inline constexpr std::string_view git_sha_short =
+    std::string_view(git_sha).substr(0, sha_display_chars);
+
+//! True when the work tree had uncommitted changes (tracked or untracked) at
+//! build time.
+inline constexpr bool git_dirty = @ERF_GIT_DIRTY@;
+
+//! Current git branch name at build time (e.g., "development", "main"), or "unknown".
+inline constexpr const char* git_branch = "@ERF_GIT_BRANCH@";
+
+//! Parent branch at build time: the upstream tracking ref if the branch has one,
+//! otherwise the nearest local branch it forked from, or "unknown".
+inline constexpr const char* git_parent = "@ERF_GIT_PARENT@";
+
+// Build date, compiler and AMReX version are deliberately absent. AMReX's own
+// build info already records all three -- buildInfoGetBuildDate(),
+// buildInfoGetComp()/buildInfoGetCompVersion(), and amrex::Version() -- and
+// duplicating them here produced fields nothing read.
+
+} // namespace erf_version
+
+#endif /* ERF_VERSION_H_ */

@@ -84,8 +84,9 @@ Why 12 is the default:
   value pasted from `job_info` works directly.
 
 `git_sha_short` is a `constexpr std::string_view`, so the abbreviation costs nothing at
-runtime — no allocation, no copy. Its `substr` clamps rather than throws, so the `unknown`
-placeholder from a non-git build passes through whole instead of being cut to `unknown`.
+runtime — no allocation, no copy. Its `substr` clamps the count to the length available,
+and cannot throw here because the start position is always zero, so the seven-character
+`unknown` placeholder from a non-git build survives intact rather than being truncated.
 
 A dirty work tree is reported as `(dirty work tree)` after the version rather than as a
 `-dirty` suffix inside it, so the version string stays clean and the state is stated once.
